@@ -1,7 +1,7 @@
 import java.io.File;
 import java.io.IOException;
 
-public class GitHash {
+public class GitHash{
 
     public static void gitRepoInit() throws IOException {
         GitHash.createDirectoryIfMissing("git");
@@ -10,8 +10,8 @@ public class GitHash {
         GitHash.createFileIfMissing("git/INDEX");
         System.out.println("Git Repository Created");
     }
-
-    public static void createDirectoryIfMissing(String path) throws IOException {
+    
+    public static void createDirectoryIfMissing (String path) throws IOException {
         File directoryCreator = new File(path);
         if (!directoryCreator.exists()) {
             directoryCreator.mkdir();
@@ -20,7 +20,7 @@ public class GitHash {
         }
     }
 
-    public static void createFileIfMissing(String path) throws IOException {
+    public static void createFileIfMissing (String path) throws IOException {
         File fileCreator = new File(path);
         if (!fileCreator.exists()) {
             fileCreator.createNewFile();
@@ -41,10 +41,6 @@ public class GitHash {
         System.out.println("Git Repository Deleted");
     }
 
-    public static String generateSHA1Hash(File file) {
-        String hex = DigestUtils.sha1Hex(Files.readString(file.toPath()));
-        System.out.println(hex);
-        return hex;
-    }
+    
 
 }
