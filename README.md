@@ -36,10 +36,82 @@ How do I read and understand the Terminal after running the Tester? Because the 
 
 ---
 
-NOTES TO SELF:
+GP-3: Trees / staging folders
+
+**WorkingDirectoryInfo Class:** - (will use WDI for short)
+
+This class stores the file information in a more readable and organized way. These instance variables include:
+
+- fileName: name of the file
+- type: tree/blob
+- hash: duh
+- paths: an array list of all directory paths in order of surface folder to the most nested.
+
+I used two different constructors for convience sake. The only diffence is that one takes a string of paths and splits them up inside the constructor, and the other takes the already split up array. 
+    *NOTE* path argument INCLUDES the file/folder name, and is then removed in the constructor
+
+**seperateDirPaths()**
+Given a relative Path in String format for the file, seperates the directories into a list using "/" to determine the next folder. includes fileName.
+
+**size()**
+Returns the imbedded depth of the blob/tree (like how many folders its in)
+
+**getNestedPath()**
+given the level, returns the directory that corresponds to that specific depth within the given WDI
+
+**getClosestRelativePath()**
+returns the immediate parent folder
+
+**compareTo()**
+returns >0 if the depth of the WDI file is greater (aka more imbedded) and <0 if it is less imbedded. If the depth is the same, instead will return a comparison based on the names of the immediate parent folder via a standard alphabetical compareTo method.
+
+**isSameDepth()**
+checks if the WDIs are at the same depth
+
+**isInSameFolder()**
+checks if the WDIs are in the same immediate parent folder
+
+
+
+!!!! __ADDED GITHASH FUNCTIONALITY__
+
+**stageFolders()**
+goes through index and creates tree objects for all folders saved in index
+
+**convertIndexToWorkingDirectory()**
+I meant working list here but I'm too lazy to change it now. Creates a priority queue of file paths in WDI format ordered from MOST IMBEDDED to LEAST IMBEDDED (i.e., order of most folders needed to click through before getting to the file). This should also account for sorting them as to be next to other files on the same level but not next to eachother in priority queue (now that I think about it, it might break if you have smth like ./this/docs/cat.txt & ./that/docs/dog.txt bc it only checks one layer... whoops ykw if i wake up early enough I'll try n fix that) returns the priority queue.
+    - honestly I wrote this code pretty late but If I were you and this is not fixed I would have WDI store just the path name and then convert to a list when u actually needa grab info to prevent any errors
+
+**convertNestedDirs()**
+Using a priority queue of sorted based on file depths, adds folders in the same path to an arraylist and then converts all those folders into a tree object. repeats until Priority Queue is used up and all folders have been stored.
+
+**convertContentsToString()**
+takes tree info (generally longer form info that has different lines / multiple data poibts) and turns into a string
+
+**stageWHOLEfolder()**
+stages ALL CONTENTS inside a folder NOT RELATED TO INDEX as trees in objects folder. I kinda made this function before i knew what was going on but i was too sad to delete it. you can ignore.
+
+**writeTreeFile()**
+creates a filename based on hashed contents and then writes those contents into the a file in the objects folder.
+
+
+---
+
+(Sam's) NOTES TO SELF:
 
 it may be useful to change some "checker" methods to booleans instead of voids that output their results for a later steps which can easily be done.
 
 output test being run before running it in Terminal
 
 the way indexTester functions it will change the contents of each file every run so if there is a problem specific to a file be sure to denote it
+
+
+(CJ's) NOTES:
+
+Moved orders of functions around and added some labels
+
+addBLOBToIndex && SHA1-hasher both take Strings as inputs now
+
+ignore stageWHOLEfolder, bad bad code 
+
+lowk it doesn't recognize if there in diff paths but the nearest directory has the same name. weird stuffs gonna happen man idk u gotta fix that sorry

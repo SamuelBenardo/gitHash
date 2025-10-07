@@ -5,16 +5,27 @@ import java.io.IOException;
 public class GitHashTester {
 
     public static void main(String[] args) throws IOException {
-        gitRepoInitTester();
-        System.out.println();
-        GitHash.gitRepoInit();
-        System.out.println();
-        testGenerateSHA1Hash();
-        System.out.println();
-        doBLOBMethodsWork();
-        System.out.println();
-        indexMethodsTester(5, 20);
+
         GitHash.cleanObjectsAndINDEX();
+        GitHash.add("goofy_ahh/wow.txt");
+        GitHash.add("goofy_ahh/BEANS/dawg.txt");
+        GitHash.add("goofy_ahh/goofy_nahhh/snog/dog.txt");
+        GitHash.stageFolders();
+
+        // PriorityQueue<WorkingDirectoryInfo> q = GitHash.convertIndexToWorkingDirectory();
+        // System.out.println(q.poll().size());
+        // System.out.println(q.poll().size());
+        // System.out.println(q.poll().size());
+
+        // GitHash.writeDirContents(new File("./goofy_ahh"));
+        // System.out.println();
+        // GitHash.gitRepoInit();
+        // System.out.println();
+        // testGenerateSHA1Hash();
+        // System.out.println();
+        // indexMethodsTester(5, 20);
+
+
     }
 
     public static void gitRepoInitTester() throws IOException {
@@ -94,8 +105,8 @@ public class GitHashTester {
         GitHash.blobExists(testFileBLOB);
         GitHash.createBLOBAndAddToObjects(testFileBLOB);
         GitHash.blobExists(testFileBLOB);
-        GitHash.deleteBLOBFromObjects(testFileBLOB);
-        GitHash.blobExists(testFileBLOB);
+        // GitHash.deleteBLOBFromObjects(testFileBLOB);
+        // GitHash.blobExists(testFileBLOB);
     }
 
     public static void indexMethodsTester(int numFiles, int fileLength) throws IOException {
@@ -110,7 +121,7 @@ public class GitHashTester {
             testFileWriter.write(fileContents);
             testFileWriter.close();
             GitHash.createBLOBAndAddToObjects(newTestFile);
-            GitHash.addBLOBEntryToIndex(newTestFile);
+            GitHash.addBLOBEntryToIndex(newTestFile.getName());
             doIndexEntriesMatchActualFiles(newTestFile);
         }
     }
