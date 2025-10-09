@@ -1,27 +1,30 @@
 import java.util.ArrayList;
 
 public class WorkingDirectoryInfo implements Comparable<WorkingDirectoryInfo> {
-    private String fileName;
     private String type;
     private String hash;
-    private ArrayList<String> paths;
+    private String stringPath;
+    private String fileName;
+    private int size;
 
     //creates a working directory info given the type, hash and string in path format
     public WorkingDirectoryInfo(String type, String hash, String path) {
         this.type = type;
         this.hash = hash;
-        paths = seperateDirPaths(path);
 
-        fileName = getNestedPath(size() - 1);
-        paths.remove(size() - 1);
+        int fileIndex = path.lastIndexOf("/");
+        fileName = path.substring(fileIndex + 1);
+        stringPath = path.substring(0, fileIndex);
+
+        size = findDepth(stringPath);
     }
 
-    // same thing but w arraylist of dir paths
-    public WorkingDirectoryInfo(String type, String hash, ArrayList<String> dirpath) {
-        this.type = type;
-        this.hash = hash;
-        this.fileName = dirpath.remove(dirpath.size() - 1);
-        this.paths = dirpath;
+    // finds how many folders the given path is nested in
+    public static int findDepth(String path) {
+        if (path.lastIndexOf("/") == -1) {
+            return -1;
+        }
+        return seperateDirPaths(path).size();
     }
 
     // splits a relative path string by the / and returns an array w/all info seperated
@@ -38,10 +41,6 @@ public class WorkingDirectoryInfo implements Comparable<WorkingDirectoryInfo> {
         return paths;
     }
 
-    public ArrayList<String> getPaths() {
-        return paths;
-    }
-
     public String getType() {
         return type;
     }
@@ -54,22 +53,13 @@ public class WorkingDirectoryInfo implements Comparable<WorkingDirectoryInfo> {
         return fileName;
     }
 
+    public String getStringPath() {
+        return stringPath;
+    }
+
     // returns how imbedded the file is
     public int size() {
-        return paths.size();
-    }
-
-    // gets the directory at that imbedded level
-    public String getNestedPath(int index) {
-        return paths.get(index);
-    }
-
-    // gets the nearest relative path, aka the one that its touching
-    public String getClosestRelativePath() {
-        if (size() == 0) {
-            return ".";
-        } 
-        return getNestedPath(size() - 1);  
+        return size;
     }
 
     // Compares WDI by size, and if the size matches returns the one with the alphabetically first path
@@ -77,7 +67,7 @@ public class WorkingDirectoryInfo implements Comparable<WorkingDirectoryInfo> {
     public int compareTo(WorkingDirectoryInfo other) {
         int size = this.size() - other.size();
         if (size == 0) {
-            return this.getClosestRelativePath().compareTo(other.getClosestRelativePath());
+            return this.getStringPath().compareTo(other.getStringPath());
         }
         return size;
     }
@@ -89,6 +79,6 @@ public class WorkingDirectoryInfo implements Comparable<WorkingDirectoryInfo> {
 
     // checks if the directories are in the same folder
     public boolean isInSameFolder(WorkingDirectoryInfo other) {
-        return getClosestRelativePath().equals(other.getClosestRelativePath());
+        return this.getStringPath().equals(other.getStringPath());
     }
 }

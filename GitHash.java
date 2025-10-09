@@ -190,7 +190,7 @@ public class GitHash {
 
     // Goes through dirs in priority order (as mentioned above) and converts the contents into object
     public static void convertNestedDirs(PriorityQueue<WorkingDirectoryInfo> wd) throws IOException {
-        if (wd.peek() != null) {
+        if (wd.peek().size() != -1) {
             ArrayList<WorkingDirectoryInfo> nestedFolders = new ArrayList<>();
             nestedFolders.add(wd.poll());
 
@@ -201,7 +201,7 @@ public class GitHash {
             }
 
             String hash = writeTreeFile(convertContentsToString(nestedFolders));
-            wd.add(new WorkingDirectoryInfo("tree", hash, currFolder.getPaths()));
+            wd.add(new WorkingDirectoryInfo("tree", hash, currFolder.getStringPath()));
             convertNestedDirs(wd);
         }
 
