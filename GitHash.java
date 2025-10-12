@@ -8,20 +8,26 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 import java.util.Comparator;
+import java.util.Date;
 import java.util.PriorityQueue;
 
 
 public class GitHash {
 
-    // Create directories
-    public static void gitRepoInit() throws IOException {
+    public static void init() throws IOException {
         GitHash.createDirectoryIfMissing("git");
         GitHash.createDirectoryIfMissing("git/objects");
         GitHash.createFileIfMissing("git/HEAD");
         GitHash.createFileIfMissing("git/INDEX");
+    }
+
+    // Create directories
+    public static void gitRepoInit() throws IOException {
+        init();
         System.out.println("Git Repository Created");
     }
 
@@ -50,8 +56,34 @@ public class GitHash {
 
     public static void add(String filePath) throws IOException {
         File f = new File(filePath);
-        createBLOBAndAddToObjects(f);
-        addBLOBEntryToIndex(filePath);
+        if (!f.exists()) {
+            throw new IOException("File does not exist: " + filePath);
+        }
+        if (f.isDirectory()) {
+            throw new IOException("Cannot add directory: " + filePath);
+        }
+        
+        if (!isFileInIndex(filePath)) {
+            createBLOBAndAddToObjects(f);
+            addBLOBEntryToIndex(filePath);
+        }
+    }
+
+    public static boolean isFileInIndex(String filePath) throws IOException {
+        File indexFile = new File("git/INDEX");
+        if (!indexFile.exists()) {
+            return false;
+        }
+        BufferedReader br = new BufferedReader(new FileReader(indexFile));
+        String line;
+        while ((line = br.readLine()) != null) {
+            if (line.contains(" ./" + filePath)) {
+                br.close();
+                return true;
+            }
+        }
+        br.close();
+        return false;
     }
 
     public static String generateSHA1FromString(String contents) throws IOException {
@@ -289,6 +321,47 @@ public class GitHash {
         BufferedWriter bw = new BufferedWriter(new FileWriter(workingListFile));
         bw.write(contents);
         bw.close();
+    }
+
+    // creates a commit file with author, message, root tree hash, and previous commit
+    public static String commit(String author, String message) throws IOException {
+        stageFolders();
+        BufferedReader br = new BufferedReader(new FileReader("./git/objects/workingList"));
+        String rootTreeContent = br.readLine();
+        br.close();
+        String rootTreeHash = generateSHA1FromString(rootTreeContent);
+        String previousCommit = "";
+        File headFile = new File("./git/HEAD");
+        if (headFile.exists() && headFile.length() > 0) {
+            BufferedReader headReader = new BufferedReader(new FileReader(headFile));
+            String headContent = headReader.readLine();
+            headReader.close();
+            if (headContent != null && !headContent.trim().isEmpty()) {
+                File previousCommitFile = new File("./git/objects/" + headContent.trim());
+                if (previousCommitFile.exists()) {
+                    previousCommit = headContent.trim();
+                }
+            }
+        }
+        
+        // https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html 
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy");
+        String currentDate = sdf.format(new Date());
+        StringBuilder commitContent = new StringBuilder();
+        commitContent.append("tree: ").append(rootTreeHash).append("\n");
+        commitContent.append("parent: ").append(previousCommit).append("\n");
+        commitContent.append("author: ").append(author).append("\n");
+        commitContent.append("date: ").append(currentDate).append("\n");
+        commitContent.append("summary: ").append(message);
+        String commitHash = generateSHA1FromString(commitContent.toString());
+        File commitFile = new File("./git/objects/" + commitHash);
+        BufferedWriter commitWriter = new BufferedWriter(new FileWriter(commitFile));
+        commitWriter.write(commitContent.toString());
+        commitWriter.close();
+        BufferedWriter headWriter = new BufferedWriter(new FileWriter("./git/HEAD"));
+        headWriter.write(commitHash);
+        headWriter.close();
+        return commitHash;
     }
 
 }

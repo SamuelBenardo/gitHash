@@ -86,7 +86,7 @@ I meant working list here but I'm too lazy to change it now. Creates a priority 
 Using a priority queue of sorted based on file depths, adds folders in the same path to an arraylist and then converts all those folders into a tree object. repeats until Priority Queue is used up and all folders have been stored.
 
 **Max's Note About Tree Functionality**
-When running the tester prior to my fixes, it would create trees for all files but not make a final "Working Directory" with the root tree and its hash in it.
+When running the tester prior to my fixes, it would create trees for all files but not make a final "Working List" with the root tree and its hash in it. Fixed now
 
 **convertContentsToString()**
 takes tree info (generally longer form info that has different lines / multiple data poibts) and turns into a string
@@ -98,6 +98,9 @@ stages ALL CONTENTS inside a folder NOT RELATED TO INDEX as trees in objects fol
 creates a filename based on hashed contents and then writes those contents into the a file in the objects folder.
 
 
+**Commit Functionality**
+
+commit method in GitHash.java takes in the author of the commit and the commit message as strings. When called, it makes an up to date working list of the directory, and writes it to a file named as the hash of the commit file contents. The most recent commit is stored in the HEAD file, and each commit includes the previous commit's hash (so it can be found in the objects folder), leading up to the initial commit.
 ---
 
 (Sam's) NOTES TO SELF:
