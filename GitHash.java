@@ -190,19 +190,24 @@ public class GitHash {
 
     // Goes through dirs in priority order (as mentioned above) and converts the contents into object
     public static void convertNestedDirs(PriorityQueue<WorkingDirectoryInfo> wd) throws IOException {
-        if (wd.peek().size() != -1) {
+        if (!wd.isEmpty()) {
             ArrayList<WorkingDirectoryInfo> nestedFolders = new ArrayList<>();
             nestedFolders.add(wd.poll());
 
             WorkingDirectoryInfo currFolder = nestedFolders.get(0);
 
-            while (wd.peek() != null && wd.peek().isInSameFolder(currFolder)) {
+            while (!wd.isEmpty() && wd.peek().isInSameFolder(currFolder)) {
                 nestedFolders.add(wd.poll());
             }
 
-            String hash = writeTreeFile(convertContentsToString(nestedFolders));
-            wd.add(new WorkingDirectoryInfo("tree", hash, currFolder.getStringPath()));
-            convertNestedDirs(wd);
+            if (currFolder.size() == -1) {
+                writeWorkingListFile(convertContentsToString(nestedFolders));
+                return;
+            } else {
+                String hash = writeTreeFile(convertContentsToString(nestedFolders));
+                wd.add(new WorkingDirectoryInfo("tree", hash, currFolder.getStringPath()));
+                convertNestedDirs(wd);
+            }
         }
 
     } 
@@ -276,6 +281,14 @@ public class GitHash {
 
         return hash;
 
+    }
+
+    // writes the final working list to a file named "workingList"
+    public static void writeWorkingListFile(String contents) throws IOException {
+        File workingListFile = new File("./git/objects/workingList");
+        BufferedWriter bw = new BufferedWriter(new FileWriter(workingListFile));
+        bw.write(contents);
+        bw.close();
     }
 
 }
