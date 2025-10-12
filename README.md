@@ -85,6 +85,9 @@ I meant working list here but I'm too lazy to change it now. Creates a priority 
 **convertNestedDirs()**
 Using a priority queue of sorted based on file depths, adds folders in the same path to an arraylist and then converts all those folders into a tree object. repeats until Priority Queue is used up and all folders have been stored.
 
+**Max's Note About Tree Functionality**
+When running the tester prior to my fixes, it would create trees for all files but not make a final "Working Directory" with the root tree and its hash in it.
+
 **convertContentsToString()**
 takes tree info (generally longer form info that has different lines / multiple data poibts) and turns into a string
 
