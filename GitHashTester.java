@@ -11,6 +11,7 @@ public class GitHashTester {
         GitHash.add("goofy_ahh/BEANS/dawg.txt");
         GitHash.add("goofy_ahh/goofy_nahhh/snog/dog.txt");
         GitHash.stageFolders();
+        GitHash.commit("Samuel Bernardo", "Initial commit with test files");
 
         // PriorityQueue<WorkingDirectoryInfo> q = GitHash.convertIndexToWorkingDirectory();
         // System.out.println(q.poll().size());

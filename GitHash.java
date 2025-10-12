@@ -8,9 +8,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 import java.util.Comparator;
+import java.util.Date;
 import java.util.PriorityQueue;
 
 
@@ -289,6 +291,45 @@ public class GitHash {
         BufferedWriter bw = new BufferedWriter(new FileWriter(workingListFile));
         bw.write(contents);
         bw.close();
+    }
+
+    // creates a commit file with author, message, root tree hash, and previous commit
+    public static void commit(String author, String message) throws IOException {
+        BufferedReader br = new BufferedReader(new FileReader("./git/objects/workingList"));
+        String rootTreeContent = br.readLine();
+        br.close();
+        String rootTreeHash = generateSHA1FromString(rootTreeContent);
+        String previousCommit = "";
+        File headFile = new File("./git/HEAD");
+        if (headFile.exists() && headFile.length() > 0) {
+            BufferedReader headReader = new BufferedReader(new FileReader(headFile));
+            String headContent = headReader.readLine();
+            headReader.close();
+            if (headContent != null && !headContent.trim().isEmpty()) {
+                File previousCommitFile = new File("./git/objects/" + headContent.trim());
+                if (previousCommitFile.exists()) {
+                    previousCommit = headContent.trim();
+                }
+            }
+        }
+        
+        // https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html 
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy");
+        String currentDate = sdf.format(new Date());
+        StringBuilder commitContent = new StringBuilder();
+        commitContent.append("tree: ").append(rootTreeHash).append("\n");
+        commitContent.append("parent: ").append(previousCommit).append("\n");
+        commitContent.append("author: ").append(author).append("\n");
+        commitContent.append("date: ").append(currentDate).append("\n");
+        commitContent.append("message: ").append(message);
+        String commitHash = generateSHA1FromString(commitContent.toString());
+        File commitFile = new File("./git/objects/" + commitHash);
+        BufferedWriter commitWriter = new BufferedWriter(new FileWriter(commitFile));
+        commitWriter.write(commitContent.toString());
+        commitWriter.close();
+        BufferedWriter headWriter = new BufferedWriter(new FileWriter("./git/HEAD"));
+        headWriter.write(commitHash);
+        headWriter.close();
     }
 
 }
