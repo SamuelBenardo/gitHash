@@ -13,41 +13,54 @@ import java.security.NoSuchAlgorithmException;
 public class GitHash {
 
     public static void gitRepoInit() throws IOException {
-        GitHash.createDirectoryIfMissing("git");
-        GitHash.createDirectoryIfMissing("git/objects");
-        GitHash.createFileIfMissing("git/HEAD");
-        GitHash.createFileIfMissing("git/INDEX");
-        System.out.println("Git Repository Created");
+        boolean createdSomething = false;
+        if (createDirectoryIfMissing("git")) {
+            createdSomething = true;
+        }
+        if (createDirectoryIfMissing("git/objects")) {
+            createdSomething = true;
+        }
+        if (createFileIfMissing("git/HEAD")) {
+            createdSomething = true;
+        }
+        if (createFileIfMissing("git/INDEX")) {
+            createdSomething = true;
+        }
+        
+        if (createdSomething) {
+            System.out.println("Git Repository Created");
+        }
+        else {
+            System.out.println("Git Repository Already Exists");
+        }
     }
 
-    public static void createDirectoryIfMissing(String path) throws IOException {
+    public static boolean createDirectoryIfMissing(String path) throws IOException {
         File directoryCreator = new File(path);
         if (!directoryCreator.exists()) {
-            directoryCreator.mkdir();
-        } else {
-            System.out.println(path + " Already Exists");
-        }
+            return directoryCreator.mkdir();
+        } 
+        return false;
     }
 
-    public static void createFileIfMissing(String path) throws IOException {
+    public static boolean createFileIfMissing(String path) throws IOException {
         File fileCreator = new File(path);
         if (!fileCreator.exists()) {
-            fileCreator.createNewFile();
-        } else {
-            System.out.println(path + " Already Exists");
+            return fileCreator.createNewFile();
         }
+        return false;
     }
 
     public static void deleteGitDirectory() throws IOException {
-        File indexDeleter = new File("git/INDEX");
-        indexDeleter.delete();
-        File headDeleter = new File("git/HEAD");
-        headDeleter.delete();
-        File objectsDeleter = new File("git/objects");
-        objectsDeleter.delete();
-        File gitDeleter = new File("git");
-        gitDeleter.delete();
-        System.out.println("Git Repository Deleted");
+        removeRecursively("git", ".");  // deletes ./git and everything inside it
+
+        File gitChecker = new File("git");
+        if (!gitChecker.exists()) {
+            System.out.println("Git Repository Deleted");
+        } 
+        else {
+            System.out.println("Git Repository Not Deleted");
+        }
     }
 
     public static String generateSHA1Hash(File file) throws IOException {
@@ -68,6 +81,11 @@ public class GitHash {
     public static void createBLOBAndAddToObjects(File file) throws IOException {
         String hash = generateSHA1Hash(file);
         File blob = new File("git/objects/" + hash);
+
+        if (blob.exists()) {
+            return;
+        }
+
         blob.createNewFile();
         FileOutputStream blobWriter = new FileOutputStream(blob);
         BufferedReader fileCopier = new BufferedReader(new FileReader(file));
@@ -95,9 +113,16 @@ public class GitHash {
         }
     }
 
+    // newline between entries only
     public static void addBLOBEntryToIndex(File file) throws IOException {
-        BufferedWriter entryWriter = new BufferedWriter(new FileWriter("git/INDEX", true));
-        entryWriter.write(generateSHA1Hash(file) + " " + file.getName() + "\n");
+        File indexFile = new File("git/INDEX");
+        boolean isEmpty = indexFile.length() == 0;
+        BufferedWriter entryWriter = new BufferedWriter(new FileWriter(indexFile, true));
+        if (!isEmpty) {
+            entryWriter.write("\n");
+        }
+
+        entryWriter.write(generateSHA1Hash(file) + " " + file.getName());
         entryWriter.close();
     }
     
