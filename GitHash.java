@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.security.NoSuchAlgorithmException;
 
 public class GitHash {
@@ -307,5 +308,270 @@ public class GitHash {
         }
         return path;
     }
+
+
+    //objective B
+    public static void writeWorkingListFromIndex(String workingListFilePath) throws IOException {
+        File indexFile = new File("git/INDEX");
+        File workingFile = new File(workingListFilePath);
+
+        FileWriter clear = new FileWriter(workingFile, false);
+        clear.write("");
+        clear.close();
     
+        if (indexFile.exists() && indexFile.length() > 0) {
+            BufferedReader br = new BufferedReader(new FileReader(indexFile));
+            String line;
+            boolean firstOutLine = true;
+    
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+    
+                if (line.length() > 0) {
+                    String[] parts = line.split(" ", 2);
+    
+                    if (parts.length == 2) {
+                        String sha1 = parts[0];
+                        String path = normalizeRelativePath(parts[1]);
+    
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(workingFile, true));
+                        if (!firstOutLine) {
+                            bw.write("\n");
+                        }
+                        bw.write("blob " + sha1 + " " + path);
+                        bw.close();
+    
+                        firstOutLine = false;
+                    }
+                }
+            }
+    
+            br.close();
+        }
+    }
+
+
+    //objective C
+    public static String generateTreesFromWorkingList(String workingListFilePath, String rootDirPath) throws IOException {
+        rootDirPath = normalizeRelativePath(rootDirPath);
+    
+        ArrayList<WLItem> items = readWorkingListItems(workingListFilePath);
+    
+        ArrayList<String> dirs = new ArrayList<>();
+        addUniqueDir(dirs, rootDirPath);
+    
+        for (int i = 0; i < items.size(); i++) {
+            WLItem it = items.get(i);
+            if (it.type.equals("blob")) {
+                String parent = parentDir(it.path);
+
+                while (parent.length() > 0) {
+                    addUniqueDir(dirs, parent);
+                    if (parent.equals(rootDirPath)) {
+                        parent = "";
+                    }
+                    else {
+                        parent = parentDir(parent);
+                    }
+                }
+            }
+        }
+    
+        sortDirsByDepthDescending(dirs);
+    
+        ArrayList<String> dirKeys = new ArrayList<>();
+        ArrayList<String> dirVals = new ArrayList<>();
+    
+        for (int d = 0; d < dirs.size(); d++) {
+            String dirPath = dirs.get(d);
+    
+            ArrayList<String> treeLines = new ArrayList<>();
+    
+            for (int i = 0; i < items.size(); i++) {
+                WLItem it = items.get(i);
+                if (it.type.equals("blob")) {
+                    String p = parentDir(it.path);
+                    if (dirPath.equals(p)) {
+                        treeLines.add("blob " + it.hash + " " + nameOnly(it.path));
+                    }
+                }
+            }
+    
+            for (int i = 0; i < dirs.size(); i++) {
+                String maybeChild = dirs.get(i);
+                if (isDirectChildDir(dirPath, maybeChild)) {
+                    String childHash = getMappedHash(dirKeys, dirVals, maybeChild);
+                    if (childHash != null) {
+                        treeLines.add("tree " + childHash + " " + nameOnly(maybeChild));
+                    }
+                }
+            }
+ 
+            String treeContent = "";
+            for (int i = 0; i < treeLines.size(); i++) {
+                treeContent += treeLines.get(i);
+                if (i < treeLines.size() - 1) {
+                    treeContent += "\n";
+                }
+            }
+    
+            String treeHash = storeTreeObjectContent(treeContent);
+    
+            dirKeys.add(dirPath);
+            dirVals.add(treeHash);
+    
+            appendWorkingListEntry(workingListFilePath, "tree " + treeHash + " " + dirPath);
+    
+ 
+            items.add(new WLItem("tree", treeHash, dirPath));
+        }
+    
+        return getMappedHash(dirKeys, dirVals, rootDirPath);
+    }
+
+
+    private static class WLItem {
+        String type;
+        String hash;
+        String path;
+    
+        WLItem(String type, String hash, String path) {
+            this.type = type;
+            this.hash = hash;
+            this.path = path;
+        }
+    }
+
+    private static ArrayList<WLItem> readWorkingListItems(String workingListFilePath) throws IOException {
+        ArrayList<WLItem> items = new ArrayList<>();
+        File f = new File(workingListFilePath);
+    
+        if (f.exists() && f.length() > 0) {
+            BufferedReader br = new BufferedReader(new FileReader(f));
+            String line;
+    
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+    
+                if (line.length() > 0) {
+                    String[] parts = line.split(" ", 3);
+                    if (parts.length == 3) {
+                        items.add(new WLItem(parts[0], parts[1], normalizeRelativePath(parts[2])));
+                    }
+                }
+            }
+    
+            br.close();
+        }
+        return items;
+    }
+
+    private static void addUniqueDir(ArrayList<String> dirs, String dirPath) {
+        boolean exists = false;
+        for (int i = 0; i < dirs.size(); i++) {
+            if (dirs.get(i).equals(dirPath)) {
+                exists = true;
+            }
+        }
+        if (!exists) {
+            dirs.add(dirPath);
+        }
+    }
+
+    private static void sortDirsByDepthDescending(ArrayList<String> dirs) {
+        for (int i = 0; i < dirs.size(); i++) {
+            int best = i;
+            for (int j = i + 1; j < dirs.size(); j++) {
+                if (depth(dirs.get(j)) > depth(dirs.get(best))) {
+                    best = j;
+                }
+            }
+            String temp = dirs.get(i);
+            dirs.set(i, dirs.get(best));
+            dirs.set(best, temp);
+        }
+    }
+
+    private static void appendWorkingListEntry(String workingListFilePath, String entry) throws IOException {
+        File f = new File(workingListFilePath);
+        boolean isEmpty = (!f.exists() || f.length() == 0);
+    
+        BufferedWriter bw = new BufferedWriter(new FileWriter(f, true));
+        if (!isEmpty) {
+            bw.write("\n");
+        }
+        bw.write(entry);
+        bw.close();
+    }
+
+    private static String getMappedHash(ArrayList<String> keys, ArrayList<String> vals, String key) {
+        for (int i = 0; i < keys.size(); i++) {
+            if (keys.get(i).equals(key)) {
+                return vals.get(i);
+            }
+        }
+        return null;
+    }
+
+    private static String parentDir(String path) {
+        int lastSlash = -1;
+    
+        for (int i = 0; i < path.length(); i++) {
+            if (path.charAt(i) == '/') {
+                lastSlash = i;
+            }
+        }
+    
+        if (lastSlash == -1) {
+            return "";
+        }
+        return path.substring(0, lastSlash);
+    }
+
+    private static String nameOnly(String path) {
+        int lastSlash = -1;
+    
+        for (int i = 0; i < path.length(); i++) {
+            if (path.charAt(i) == '/') {
+                lastSlash = i;
+            }
+        }
+    
+        if (lastSlash == -1) {
+            return path;
+        }
+        return path.substring(lastSlash + 1);
+    }
+
+    private static int depth(String dirPath) {
+        int count = 0;
+        for (int i = 0; i < dirPath.length(); i++) {
+            if (dirPath.charAt(i) == '/') {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean isDirectChildDir(String parentDir, String childDir) {
+        if (childDir.equals(parentDir)) {
+            return false;
+        }
+    
+        String prefix = parentDir + "/";
+        if (!childDir.startsWith(prefix)) {
+            return false;
+        }
+    
+        String rest = childDir.substring(prefix.length());
+    
+        int slashPos = -1;
+        for (int i = 0; i < rest.length(); i++) {
+            if (rest.charAt(i) == '/') {
+                slashPos = i;
+            }
+        }
+        return slashPos == -1;
+    }
+
 }
