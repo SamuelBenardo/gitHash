@@ -1,0 +1,4 @@
+blob aa6878b1c31a9420245df1daffb7b223338737a3 m31root/sub/B.txt
+blob 606ec6e9bd8a8ff2ad14e5fade3f264471e82251 m31root/A.txt
+tree 318486a944fddbc8ddf74e51300780dfe3286d59 m31root/sub
+tree e635e4d997d046c845d23a42e0e83c4421c3580a m31root

@@ -43,3 +43,40 @@ it may be useful to change some "checker" methods to booleans instead of voids t
 output test being run before running it in Terminal
 
 the way indexTester functions it will change the contents of each file every run so if there is a problem specific to a file be sure to denote it
+
+
+
+
+
+RK Part 2 Notes:
+For Milestone 3.0, I added the ability to back up a directory by creating a tree object that represents the contents of a folder.
+
+What I added:
+- A method to take a directory path and recursively process everything inside it.
+- For each file the program:
+  - hashes the file contents using SHA1 method provided
+  - creates a BLOB object in git/objects/ if it doesn’t already exist
+  - adds a blob entry into the directory’s tree content
+- For each subdirectory the program:
+  - recursively creates a tree for that subdirectory
+  - adds a tree entry into the parent directory’s tree content
+- The final tree content is hashed saved into git/objects/ as a tree object and the method returns the tree’s SHA1 hash.
+
+Milestone 3.1: Recursive tree generation + working list
+For Milestone 3.1, I changed the process to build trees using a “working list” approach that starts from the index.
+
+What I added:
+- A method to stage a directory so that git/INDEX contains only file (BLOB) entries using relative paths.
+- A method to convert the git/INDEX file into a separate working list file where each line begins with blob.
+- A method to generate tree objects bottom-up by:
+  - reading the working list
+  - prioritizing deeper directories first
+  - creating tree objects for each subdirectory and then the root
+  - appending tree entries into the working list as each directory is processed
+
+How I tested
+I used a tester class (GitHashMilestone31Tester) that creates a small sample folder with a subfolder and two files runs the 3.1 steps and checks that:
+- the index and working list are created and updated correctly
+- blob objects are created for the files
+- tree objects are created for the directories
+- the generated tree content matches what the directory structure should produce

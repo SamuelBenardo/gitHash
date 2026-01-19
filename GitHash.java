@@ -574,4 +574,6 @@ public class GitHash {
         return slashPos == -1;
     }
 
+    
+
 }
