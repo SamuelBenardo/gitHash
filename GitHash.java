@@ -150,4 +150,102 @@ public class GitHash {
         return;
     }
 
+
+
+    // 3.0
+    public static String addDirectory(String directoryPath) throws IOException {
+        File dir = new File(directoryPath);
+        if (!dir.exists() || !dir.isDirectory()) {
+            throw new IllegalArgumentException("Not a valid directory: " + directoryPath);
+        }
+
+        return buildTreeAndStore(dir, directoryPath);
+    }
+
+
+    private static String buildTreeAndStore(File dir, String dirLabel) throws IOException {
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return storeTreeObjectContent("");
+        }
+    
+        java.util.ArrayList<String> treeLines = new java.util.ArrayList<>();
+    
+        for (File child: children) {
+            String name = child.getName();
+    
+            if (!name.equals("git")) {
+                String childPathLabel = dirLabel + "/" + name;
+    
+                if (child.isDirectory()) {
+                    String subTreeHash = buildTreeAndStore(child, childPathLabel);
+                    treeLines.add("tree " + subTreeHash + " " + name);
+                    addTreeEntryToIndex(subTreeHash, childPathLabel);
+                }
+                else {
+                    createBLOBAndAddToObjects(child);
+                    String blobHash = generateSHA1Hash(child);
+                    treeLines.add("blob " + blobHash + " " + name);
+                    addBlobEntryToIndex(blobHash, childPathLabel);
+                }
+            }
+        }
+    
+        String treeContent = "";
+        for (int i = 0; i < treeLines.size(); i++) {
+            treeContent += treeLines.get(i);
+            if (i < treeLines.size() - 1) {
+                treeContent += "\n";
+            }
+        }
+
+        return storeTreeObjectContent(treeContent);
+    }
+
+
+    private static String storeTreeObjectContent(String treeContent) throws IOException {
+        File tempTreeFile = new File("git/TEMP_TREE.txt");
+        if (!tempTreeFile.exists()) {
+            tempTreeFile.createNewFile();
+        }
+    
+        FileWriter tempWriter = new FileWriter(tempTreeFile, false);
+        tempWriter.write(treeContent);
+        tempWriter.close();
+    
+        String treeHash = generateSHA1Hash(tempTreeFile);
+    
+        File treeObject = new File("git/objects/" + treeHash);
+        if (!treeObject.exists()) {
+            treeObject.createNewFile();
+            FileWriter objWriter = new FileWriter(treeObject, false);
+            objWriter.write(treeContent);
+            objWriter.close();
+        }
+    
+        tempTreeFile.delete();
+    
+        return treeHash;
+    }
+
+
+    private static void addBlobEntryToIndex(String hash, String path) throws IOException {
+        addTypedEntryToIndex("blob", hash, path);
+    }
+
+    private static void addTreeEntryToIndex(String hash, String path) throws IOException {
+        addTypedEntryToIndex("tree", hash, path);
+    }
+
+    private static void addTypedEntryToIndex(String type, String hash, String path) throws IOException {
+        File indexFile = new File("git/INDEX");
+        boolean isEmpty = indexFile.length() == 0;
+    
+        BufferedWriter entryWriter = new BufferedWriter(new FileWriter(indexFile, true));
+        if (!isEmpty) {
+            entryWriter.write("\n");
+        }
+        entryWriter.write(type + " " + hash + " " + path);
+        entryWriter.close();
+    }
 }

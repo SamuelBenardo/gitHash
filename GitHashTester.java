@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -116,6 +118,23 @@ public class GitHashTester {
     }
 
     public static void doIndexEntriesMatchActualFiles(File newTestFile) throws IOException {
+        String expected = GitHash.generateSHA1Hash(newTestFile) + " " + newTestFile.getName();
 
+        BufferedReader br = new BufferedReader(new FileReader("git/INDEX"));
+        String line;
+        String last = null;
+        while ((line = br.readLine()) != null) {
+            last = line;
+        }
+        br.close();
+
+        if (expected.equals(last)) {
+         System.out.println("INDEX entry matches for " + newTestFile.getName());
+        }
+        else {
+            System.out.println("INDEX entry does NOT match for " + newTestFile.getName());
+            System.out.println("Expected: " + expected);
+            System.out.println("Found:    " + last);
+        }
     }
 }
