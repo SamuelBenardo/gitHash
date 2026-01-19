@@ -248,4 +248,64 @@ public class GitHash {
         entryWriter.write(type + " " + hash + " " + path);
         entryWriter.close();
     }
+
+
+    //3.1
+    public static void stageDirectoryToIndexBlobsOnly(String directoryPath) throws IOException {
+        File dir = new File(directoryPath);
+        if (!dir.exists() || !dir.isDirectory()) {
+            throw new IllegalArgumentException("Not a valid directory: " + directoryPath);
+        }
+    
+        stageDirectoryHelper(dir, directoryPath);
+    }
+
+    private static void stageDirectoryHelper(File dir, String rootLabel) throws IOException {
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return;
+        }
+    
+        for (File child: children) {
+            String name = child.getName();
+    
+            if (!name.equals("git")) {
+                String childPath = rootLabel + "/" + name;
+    
+                if (child.isDirectory()) {
+                    stageDirectoryHelper(child, childPath);
+                }
+                else {
+                    createBLOBAndAddToObjects(child);
+                    String hash = generateSHA1Hash(child);
+                    addBlobPathEntryToIndex(hash, childPath);
+                }
+            }
+        }
+    }
+
+    private static void addBlobPathEntryToIndex(String hash, String relativePath) throws IOException {
+        File indexFile = new File("git/INDEX");
+        boolean isEmpty = indexFile.length() == 0;
+    
+        BufferedWriter writer = new BufferedWriter(new FileWriter(indexFile, true));
+        if (!isEmpty) {
+            writer.write("\n");
+        }
+        writer.write(hash + " " + normalizeRelativePath(relativePath));
+        writer.close();
+    }
+
+    private static String normalizeRelativePath(String path) {
+        path = path.trim();
+    
+        while (path.startsWith("./")) {
+            path = path.substring(2);
+        }
+        while (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        return path;
+    }
+    
 }
